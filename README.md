@@ -1,5 +1,13 @@
 # CueStep Fader
 
+## Disclaimer
+__ATTENTION!__
+You are using this plugin at your own risk!
+Even though there have been no critical bugs reported until now, the creator of this plugin under no circumstances assumes responsibility for damaged, destroyed or in any way negatively influenced show files or damaged or destroyed content or parts of a show file.
+Please always do a backup on an external USB-Stick BEFORE running this plugin.
+DO NOT RUN THIS PLUGIN IN ANY SHOW-CRITICAL SITUATIONS!
+
+
 ## Table of contents
 * [What is CueStep Fader?](#what-is-cuestep-fader?)
 * [Technology](#technology)
