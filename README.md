@@ -4,7 +4,6 @@
 * [What is CueStep Fader?](#what-is-cuestep-fader?)
 * [Technology](#technology)
 * [Installation guide](#installation-guide)
-* [Run CSF](#run-csf)
 
 
 ## What is CueStep Fader?
