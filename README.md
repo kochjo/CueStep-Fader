@@ -10,8 +10,8 @@ DO NOT RUN THIS PLUGIN IN ANY SHOW-CRITICAL SITUATIONS!
 
 ## Table of contents
 * [What is CueStep Fader?](#what-is-cuestep-fader?)
-* [Technology](#technology)
 * [Installation guide](#installation-guide)
+* [Technology](#technology)
 
 
 ## What is CueStep Fader?
