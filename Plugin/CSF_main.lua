@@ -1,12 +1,3 @@
---[[BETA NOTES:
-    To be enhanced for Vers 0.24.3:
-
-    Bugs to fix for Vers. 0.24.3:
-
-    Features to add for Vers. 0.24.3:
-    
-]]
-
 -- ************************************************
 -- CREATED AND DEVELOPED BY JONAS KOCH & MARK HUBER
 -- ************************************************
@@ -27,8 +18,8 @@ else
     package.path = package.path..';/media/sdb/gma2/plugins/CueStep Fader/?.lua;/media/sdb1/gma2/plugins/CueStep Fader/?.lua;/media/sdb2/gma2/plugins/CueStep Fader/?.lua'
 end
 
-local pooltools    = require 'pooltools'
-local csfixtype    = require 'csfixtype'
+local pooltools = require 'pooltools'
+local csfixtype = require 'csfixtype'
 
 local addr_cache   = tonumber(getvar("CSF_ADDR_CACHE") or 1)
 local cmd          = function(syntax, ...) gma.cmd(syntax:format(...)) end
@@ -52,10 +43,6 @@ local function verify_execnumber(num, heading)
     local exec
     local page
     repeat
-        if tryagain then 
-            heading = "Invalid executor number! Try again."
-            num = nil
-        end
         num = num or gma.textinput(heading, "")
         local border1, border2  = num:find('%.')
         if border1 then
@@ -65,9 +52,9 @@ local function verify_execnumber(num, heading)
             page = tonumber(getvar('Faderpage'))
             exec = tonumber(num)
         end
-        tryagain = true
+        heading = "Invalid executor number! Try again."
+        num = nil
     until page and exec
-    tryagain = false
     exec = pooltools.getalt('Executor', page, exec, {1, 15})
     if #tostring(exec) == 1 then exec = '0'..exec end
     local execnum = exec ~= '00' and page..'.'..exec or verify_execnumber(1+page..'.1') --recursively calls verify_execnumber with increasing page numbers until a page with any free executors is found.
