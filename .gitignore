@@ -1,5 +1,7 @@
 #MacOS Files
 *.DS_Store
+*.vscode
+*.code-workspace
 
 # Compiled Lua sources
 luac.out
