@@ -22,8 +22,9 @@ With CSF you can trigger specific cues in a sequence depending on the faderposit
 ## Installation guide
 Please follow these Steps for the installation of CSF:
 1. Move the required files to the right directory.<br> 
-   1.1 For onPC: Copy the folder CSP2 into: C:\Program Data\MA Lighting Technologies\grandma\gma2_V_X\plugins.<br>
-   1.2 For Console: Copy the folder CSP2 to a USB-Stick at: „STICK NAME"\gma2\plugins.
+   1.1 For onPC: Copy the folder named 'CueStep Fader' into: C:\Program Data\MA Lighting Technologies\grandma\gma2_V_X\plugins.<br>
+   1.2 For Console: Copy the folder 'CueStep Fader' to a USB-Stick at: „STICK NAME"\gma2\plugins.
+   _Important(for both cases): The folder HAS to be labeled as 'CueStep Fader'. Otherwise the Plugin won't run!_
 2. Open GrandMA2 onPC / start console.
 3. Open a PLUGIN-Pool. You can find it under „System".
 4. Right-click on a free plugin-field.
