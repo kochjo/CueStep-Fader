@@ -16,6 +16,7 @@ end
 function csfixtype.create(file, number_of_steps, vers)
     local profile_index = pooltools.getfrobj('Profile', 1, number_of_steps+1)
     local step_size = 1 / number_of_steps
+    local points = {}
     io.output(file)
     io.write(string.format(
         '<?xml version="1.0" encoding="utf-8"?>\n'..
@@ -38,7 +39,7 @@ function csfixtype.create(file, number_of_steps, vers)
     profile_index, number_of_steps, vers))
     x_cache = 0.01
     for i=profile_index+1, profile_index + number_of_steps-1 do
-        local points = calc_x(step_size)
+        points = calc_x(step_size)
         io.write(string.format(
             '\t\t\t<DMX_Profile index="%i" name="CSF_Profile %i/%i_%i" display_spec_index="1">\n'..
             '\t\t\t\t<DMX_Profile_Point index="0" x="%.4f" mode="linear" />\n'..

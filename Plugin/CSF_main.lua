@@ -21,15 +21,15 @@ end
 local pooltools = require 'pooltools'
 local csfixtype = require 'csfixtype'
 
-local addr_cache   = tonumber(getvar("CSF_ADDR_CACHE") or 1)
-local cmd          = function(syntax, ...) gma.cmd(syntax:format(...)) end
-local FTYPEVERS    = 10
-local LIB_PATH     = getvar("PATH")..'/library'
-local gethandle    = function(syntax, ...) return getobj.handle(syntax:format(...)) end
+local addr_cache = tonumber(getvar("CSF_ADDR_CACHE") or 1)
+local cmd = function(syntax, ...) gma.cmd(syntax:format(...)) end
+local FTYPEVERS = 10
+local LIB_PATH = getvar("PATH")..'/library'
+local gethandle = function(syntax, ...) return getobj.handle(syntax:format(...)) end
 local num_of_steps
-local tryagain     = false -- control flag for user input.
-local UNI          = tonumber(getvar("CSF_UNI") or pooltools.getfruni())
-local userinfo     = {}
+local tryagain = false -- control flag for user input.
+local UNI = tonumber(getvar("CSF_UNI") or pooltools.getfruni())
+local userinfo = {}
 
 --********************************************************--
 -- ********************* START CODE ********************* --
@@ -72,10 +72,10 @@ local function delete_deprecated(path)
     ]]
     local a = 0
     for i=FTYPEVERS-1, 1, -1 do
-        local name    = string.format('csfixtype-%i--v%i.xml', num_of_steps, i)
-        local slash   = package.config:sub(1,1)
+        local name = string.format('csfixtype-%i--v%i.xml', num_of_steps, i)
+        local slash = package.config:sub(1,1)
         path = path..slash..name
-        local file    = io.open(path, 'r')
+        local file = io.open(path, 'r')
         if file then
             file:close()
             local syntax = getvar('OS') == 'WINDOWS' and 'del "%s"' or 'rm -f %s'
@@ -108,7 +108,7 @@ local function setup_CSFader(csf_seq, exec, name, fname)
         Import and patch the CSFixture and store it to the CSFader.
     ]]
     local ftypename = "CueStep Fader "..num_of_steps.." steps"
-    local fix_id    = pooltools.getfrobj('fixture', 10001, 1)
+    local fix_id = pooltools.getfrobj('fixture', 10001, 1)
     cmd('cd EditSetup; cd Layers')
     local layerhandle = getobj.handle('CSLayer')
     if not layerhandle then
@@ -137,8 +137,8 @@ local function create_CSContainer(seq, exec, name)
     --[[
         Create an executor containing the steps as cues
     ]]
-    exec, subs     = verify_execnumber(exec:gsub('%.', '.1'))
-    userinfo.csc   = seq
+    exec = verify_execnumber(exec:gsub('%.', '.1'))
+    userinfo.csc = seq
     cmd('store seq %i Cue 1 thru %i "Step 1"', seq, num_of_steps)
     cmd('label seq %i "CSC_%s"', seq, name)
     cmd('assign seq "CSC_%s" at exec %s', name, exec) 
@@ -148,7 +148,7 @@ local function setup_remotes(name, csc_seq)
     --[[
         Create the desired DMX remotes.
     ]]
-    local remote      = pooltools.getfrobj('remote 3.', 1, num_of_steps+1)
+    local remote = pooltools.getfrobj('remote 3.', 1, num_of_steps+1)
     local last_remote = remote + num_of_steps
     local j = 1
     cmd('store remote 3.%i thru 3.%i', remote, last_remote)
