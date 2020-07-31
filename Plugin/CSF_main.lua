@@ -1,7 +1,7 @@
 -- ************************************************
 -- CREATED AND DEVELOPED BY JONAS KOCH & MARK HUBER
 -- ************************************************
---               Version 0.24.2 (Beta)
+--               Version 0.25.0 (Beta)
 -- ************************************************
 
 --********************************************************--
@@ -12,22 +12,33 @@ local getobj = gma.show.getobj
 local getvar = gma.show.getvar
 local setvar = gma.show.setvar
 
-if getvar("OS") == "WINDOWS" then
-    package.path = package.path..';'..getvar('pluginpath')..'/CueStep Fader/?.lua'
+if getvar("OS") == "WINDOWS" then -- Configure Lua's native 'package.path' variable to ensure that the machine finds all necessary modules.
+    local module_path = getvar('pluginpath')..'/CueStep Fader'
+    package.path = package.path..';'..
+    module_path..'/Plugin/?.lua;'..
+    module_path..'/?.lua'
 else
-    package.path = package.path..';/media/sdb/gma2/plugins/CueStep Fader/?.lua;/media/sdb1/gma2/plugins/CueStep Fader/?.lua;/media/sdb2/gma2/plugins/CueStep Fader/?.lua'
+    local module_path = "/media/%s/gma2/plugins/CueStep Fader"
+    package.path = package.path..';'..
+    module_path:format('sdb')..'/?.lua;'..
+    module_path:format('sdb')..'/Plugin/?.lua;'..
+    module_path:format('sdb1')..'/?.lua;'..
+    module_path:format('sdb1')..'/Plugin/?.lua;'..
+    module_path:format('sdb2')..'/?.lua;'..
+    module_path:format('sdb2')..'/Plugin/?.lua;'
 end
 
+local Test = require 'Test'
 local pooltools = require 'pooltools'
 local csfixtype = require 'csfixtype'
 
+local TESTMODE = false -- Is set by calling the main function with 'true' as argument.
 local addr_cache = tonumber(getvar("CSF_ADDR_CACHE") or 1)
 local cmd = function(syntax, ...) gma.cmd(syntax:format(...)) end
 local FTYPEVERS = 10
 local LIB_PATH = getvar("PATH")..'/library'
 local gethandle = function(syntax, ...) return getobj.handle(syntax:format(...)) end
 local num_of_steps
-local tryagain = false -- control flag for user input.
 local UNI = tonumber(getvar("CSF_UNI") or pooltools.getfruni())
 local userinfo = {}
 
@@ -43,7 +54,8 @@ local function verify_execnumber(num, heading)
     local exec
     local page
     repeat
-        num = num or gma.textinput(heading, "")
+        num = num or (TESTMODE and Test.execnum:get_new_val() or gma.textinput(heading, ""))
+        -- get_new_val is only chosen instead of userinput if plugin runs in test mode.
         local border1, border2  = num:find('%.')
         if border1 then
             page = tonumber(num:sub(1, border1-1))
@@ -57,7 +69,8 @@ local function verify_execnumber(num, heading)
     until page and exec
     exec = pooltools.getalt('Executor', page, exec, {1, 15})
     if #tostring(exec) == 1 then exec = '0'..exec end
-    local execnum = exec ~= '00' and page..'.'..exec or verify_execnumber(1+page..'.1') --recursively calls verify_execnumber with increasing page numbers until a page with any free executors is found.
+    local execnum = exec ~= '00' and page..'.'..exec or verify_execnumber(1+page..'.1') 
+    --recursively calls verify_execnumber with increasing page numbers until a page with any free executors is found.
     if not gethandle('Page %i', page) then
         for i=tonumber(getvar('Faderpage')), page-1 do
             cmd('page +')
@@ -170,34 +183,32 @@ local function print_user_infos()
     ]]
     gma.echo("\n CueStep Fader successfully accomplished. \n \n ************************************ \n created by Jonas Koch and Mark Huber \n ************************************")
     gma.feedback("\n You can find \n - The CSF-Executor at "..userinfo.exec..". \n - The 'cue container' at sequence "..userinfo.csc..".")
-    gma.gui.msgbox("INFO","You can find \n - The CSF-Executor at "..userinfo.exec..". \n - The 'cue container' at sequence "..userinfo.csc..".")
+    if not TESTMODE then
+        gma.gui.msgbox("INFO","You can find \n - The CSF-Executor at "..userinfo.exec..". \n - The 'cue container' at sequence "..userinfo.csc..".")
+    end
 end
 
-local function main()
+function CSF_main(testmode)
     --[[
         Requests user input for the number of steps and the CSF-name
         and executes all necessary functions in order.
     ]]
+    if testmode then TESTMODE = true end
+    local csfname
     local heading = "How many Steps"
     repeat
-        if tryagain then 
-            heading = "Number of Steps has to be a natural number."
-        end
-        num_of_steps = tonumber(gma.textinput(heading, ""))
-        tryagain = true
+        num_of_steps = TESTMODE and Test.steps:get_new_val() or gma.textinput(heading, "") 
+        -- Standard is textinput. get_new_val() is only chosen when plugin runs in test mode.
+        num_of_steps = tonumber(num_of_steps)
+        heading = "Number of Steps has to be a natural number."
     until num_of_steps and num_of_steps == math.floor(num_of_steps) and num_of_steps > 0
-    tryagain = false
     local csfexec = verify_execnumber(nil, "Enter executor number. (e.g 1.1)")
-    local csfname
     heading = "Enter a name for the CSF."
     repeat
-        if tryagain then
-            heading = "Name is invalid or already in use."
-        end
-        csfname = gma.textinput(heading, "")
-        tryagain = true
+        csfname = TESTMODE and Test.name:get_new_val() or gma.textinput(heading, "") 
+        -- Standard is textinput. CSF_TEST_name is only chosen when plugin runs in testmode.
+        heading = "Name is invalid or already in use."
     until csfname and not getobj.handle("executor *.CSC_"..csfname)
-    tryagain = false
     local fname       = string.format('csfixtype-%i--v%i.xml', num_of_steps, FTYPEVERS)
     local found, file = manage_ftype_files(LIB_PATH, fname)
     local csf_seq     = pooltools.getfrobj('sequence', 101, 1)
@@ -209,6 +220,7 @@ local function main()
     create_CSContainer(csc_seq, csfexec, csfname)
     setup_remotes(csfname, csc_seq)
     print_user_infos()
+    if TESTMODE then coroutine.resume(Test.test) end -- ends the suspension of the test function
 end
 
-return main
+return CSF_main
