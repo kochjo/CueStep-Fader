@@ -1,3 +1,14 @@
+# V 0.25.0
+## Added features:
+1. Can be tested automatically by using an added test mode.
+
+## Fixed bugs:
+1. Console can't import the necessary modules due to a wrong 'package.path configuration.'
+
+## Enhancements:
+--
+
+---
 
 # V 0.24.2
 ## Added features:
