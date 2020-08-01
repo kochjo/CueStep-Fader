@@ -34,10 +34,10 @@ Please follow these Steps for the installation of CSF:
 
 ## Developer infos
 ### Automated testings
-To test the plugin automatically with the Test.lua script, import the plugin as described above. But instead of running the plugin directly type 
-    LUA 'CSF_main(true)'
-into the commandline, as it runs CSF in test mode.
-A Test.log file is created under /ProgramData/MA Lighting Technologies/grandma/gma2_V_X.X.
+To test the plugin automatically with the Test.lua script, import the plugin as described above. But instead of running the plugin directly type<br>
+    ```LUA 'CSF_main(true)'```<br>
+into the commandline, as it runs CSF in test mode.<br>
+A Test.log file is created under /ProgramData/MA Lighting Technologies/grandma/gma2_V_X.X.<br>
 _Note, that the log file is empty until onPC.exe is closed._
 
 ## Technology
