@@ -1,4 +1,5 @@
 -- This file is for automatically testing and logging CueStep Fader.
+-- 0.1.1
 
 Test = {} -- module table to be returned
 local cmd = function(syntax, ...) gma.cmd(syntax:format(...)) end
@@ -51,13 +52,13 @@ end
 
 Test.test = coroutine.create(function()
     --[[
-        The main function for the test. It imports the plugin, sets it to the testmode and
-        runs it repeatedly until all inputs listed in Test.lua are tested.
+        The main function for the test. It runs CSF repeatedly (with param. 'testmode' set to true)
+        until all inputs listed in Test.lua are tested.
     ]]
     local i = 0
     while not all_tested() do
         log("Run", i, 'Not all tested. Next one.')
-        cmd('LUA "main(true)"')
+        cmd('LUA "CSF_main(true)"')
         coroutine.yield()
         log(nil, nil, "\n Resume yielding loop.")
         -- needs to be yielded, as it otherwise continuously executes the plugin
@@ -89,7 +90,7 @@ function Inputs:new(name) -- init instance of Inputs
 
     function o:get_new_val()
     --[[
-        Returns the first untested value of the given table.
+        Returns the first untested value.
         If all values have already been tested, it returns "2" as it's an valid input in anycase.
     ]]
         for _, input in ipairs(self.inputs) do
@@ -102,7 +103,7 @@ function Inputs:new(name) -- init instance of Inputs
         end
         log(nil, nil,"All values for "..self.name.." tested. Return '2'")
         return "2"
-        end
+    end
     return o
 end
 
