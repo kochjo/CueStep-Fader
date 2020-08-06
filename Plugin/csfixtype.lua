@@ -14,7 +14,7 @@ local function calc_x(step_size)
 end
 
 function csfixtype.create(file, number_of_steps, vers)
-    local profile_index = pooltools.getfrobj('Profile', 1, number_of_steps+1)
+    local profile_index = pooltools.getFreeObj('Profile', 1, number_of_steps+1)
     local step_size = 1 / number_of_steps
     local points = {}
     io.output(file)
