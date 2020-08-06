@@ -1,14 +1,14 @@
--- V 1.11
+-- V 2.0.0
 
 local pooltools = {}
 local gethandle = gma.show.getobj.handle
 
-function pooltools.getfrobj(target, start, amount)
+function pooltools.getFreeObj(target, start, amount)
     --[[
         Searches for 'amount' consecutive free pool slots of a specific pool type ('target') starting at slot number 'start'.
         Returns the number of the first suitable slot. 'momode' prints the result in the system monitor.
     ]]--
-    local a = 0
+    local free_slots = 0
     while true do
         local firsttarget = target..' '..start
         local handle      = gethandle(firsttarget)
@@ -17,44 +17,53 @@ function pooltools.getfrobj(target, start, amount)
                 local multitarget = target..' '..i
                 local multihandle = gethandle(multitarget)
                 if not multihandle then
-                    a = a + 1
+                    free_slots = free_slots + 1
                 else
-                    a = 0
+                    free_slots = 0
                     break
                 end
-                if a >= amount then return start end
+                if free_slots >= amount then return start end
             end
         end
         start = start+1
     end
 end
 
-function pooltools.getfruni()
+function pooltools.getUni(start_uni, start_addr, amount)
     --[[
-        Returns the first completely unpatched universe.
+        Returns the first matching universe while all parameters are optional.
+        start_uni: The universe at which the search should start. Is set to 1 if parameter is nil.
+        start_addr: The DMX address at which the search at start_uni should start.
+                    Is set to 1 if:
+                        - parameter is nil
+                        - start_uni has not enough consecutive free DMX addresses, so start_uni is counted up.
+        amount: The amount of required consecutive free DMX addresses. Is set to 512 if parameter is nil.
     ]]
     local getprop = gma.show.property.get
-    local START = 1
-    local END = 255
-
-    for i=START, END do
-        local target = 'DMX '..i..'.'
-        local a = 0
-        for j=1, 512 do
-            local handle = gethandle(target..j)
+    start_uni = start_uni or 1
+    start_addr = start_addr or 1
+    amount = amount or 512
+    local end_uni = 255
+    local critical_addr = 512 - amount
+    for uni=start_uni, end_uni do
+        local target = 'DMX '..uni..'.'
+        local free_addr = 0
+        for addr=start_addr, 512 do
+            local handle = gethandle(target..addr)
             local name = getprop(handle, 1)
             if name == "" then
-                a = a + 1
+                free_addr = free_addr + 1
             else
-                a = 0
-                break
+                free_addr = 0
             end
-            if a >= 512 then return i end
+            if free_addr >= amount then return uni end
+            if addr > critical_addr and free_addr == 0 then break end
         end
+        start_addr = 1 -- reset start_addr to 1 as if
     end
 end
 
-function pooltools.getalt(target, layer, index, range) -- range must be a table! E.g. range = {1, 15}
+function pooltools.getAlt(target, layer, index, range) -- range must be a table! E.g. range = {1, 15}
     --[[
         Returns index of the nearest free pool object within "range" depending on the given index.
         If there's no free pool object within "range", it returns 0.
