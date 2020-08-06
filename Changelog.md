@@ -1,3 +1,15 @@
+# V 0.26.0
+## Added features:
+1. More then one universe can be used for CSFs if necessary.
+
+## Fixed bugs:
+--
+
+## Enhancements:
+1. CSF is now executable, even if Test.lua file is absent.
+
+---
+
 # V 0.25.0
 ## Added features:
 1. Can be tested automatically by using an added test mode.
