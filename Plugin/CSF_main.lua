@@ -1,7 +1,7 @@
 -- ************************************************
 -- CREATED AND DEVELOPED BY JONAS KOCH & MARK HUBER
 -- ************************************************
---               Version 0.25.0 (Beta)
+--               Version 0.26.0 (Beta)
 -- ************************************************
 
 --********************************************************--
@@ -28,9 +28,10 @@ else
     module_path:format('sdb2')..'/Plugin/?.lua;'
 end
 
-local Test = require 'Test'
 local pooltools = require 'pooltools'
 local csfixtype = require 'csfixtype'
+local req_success, Test = pcall(function() return require 'Test' end)
+--^ Prevent the plugin from crashing if "Test.lua" is not available as it is not necessary for it to run.
 
 local TESTMODE = false -- Is set by calling the main function with 'true' as argument.
 local addr_cache = tonumber(getvar("CSF_ADDR_CACHE") or 1)
@@ -39,12 +40,24 @@ local FTYPEVERS = 10
 local LIB_PATH = getvar("PATH")..'/library'
 local gethandle = function(syntax, ...) return getobj.handle(syntax:format(...)) end
 local num_of_steps
-local UNI = tonumber(getvar("CSF_UNI") or pooltools.getfruni())
+local UNI
 local userinfo = {}
 
 --********************************************************--
 -- ********************* START CODE ********************* --
 --********************************************************--
+
+local function get_uni()
+    local amount_of_channels
+    local uni = getvar('CSF_UNI')
+    if uni then
+        uni = tonumber(uni)
+        amount_of_channels = num_of_steps
+    end
+    uni = pooltools.getUni(uni, nil, amount_of_channels)
+    setvar('CSF_UNI', uni)
+    return uni
+end
 
 local function verify_execnumber(num, heading)
     --[[
@@ -55,7 +68,6 @@ local function verify_execnumber(num, heading)
     local page
     repeat
         num = num or (TESTMODE and Test.execnum:get_new_val() or gma.textinput(heading, ""))
-        -- get_new_val is only chosen instead of userinput if plugin runs in test mode.
         local border1, border2  = num:find('%.')
         if border1 then
             page = tonumber(num:sub(1, border1-1))
@@ -67,7 +79,7 @@ local function verify_execnumber(num, heading)
         heading = "Invalid executor number! Try again."
         num = nil
     until page and exec
-    exec = pooltools.getalt('Executor', page, exec, {1, 15})
+    exec = pooltools.getAlt('Executor', page, exec, {1, 15})
     if #tostring(exec) == 1 then exec = '0'..exec end
     local execnum = exec ~= '00' and page..'.'..exec or verify_execnumber(1+page..'.1') 
     --recursively calls verify_execnumber with increasing page numbers until a page with any free executors is found.
@@ -121,7 +133,7 @@ local function setup_CSFader(csf_seq, exec, name, fname)
         Import and patch the CSFixture and store it to the CSFader.
     ]]
     local ftypename = "CueStep Fader "..num_of_steps.." steps"
-    local fix_id = pooltools.getfrobj('fixture', 10001, 1)
+    local fix_id = pooltools.getFreeObj('fixture', 10001, 1)
     cmd('cd EditSetup; cd Layers')
     local layerhandle = getobj.handle('CSLayer')
     if not layerhandle then
@@ -131,7 +143,7 @@ local function setup_CSFader(csf_seq, exec, name, fname)
     local fix = getobj.amount(layerhandle)+1
     cmd('cd CSLayer')
     if not gethandle('Fixturetype "%s"', ftypename) then
-        local ftypeno = pooltools.getfrobj('fixturetype', 1, 1)
+        local ftypeno = pooltools.getFreeObj('fixturetype', 1, 1)
         cmd('Import "%s" At Fixturetype %i /path="%s"', fname, ftypeno, LIB_PATH)
     end
     cmd('store %i; assign FixtureType "%s" at %i', fix, ftypename, fix)
@@ -161,7 +173,7 @@ local function setup_remotes(name, csc_seq)
     --[[
         Create the desired DMX remotes.
     ]]
-    local remote = pooltools.getfrobj('remote 3.', 1, num_of_steps+1)
+    local remote = pooltools.getFreeObj('remote 3.', 1, num_of_steps+1)
     local last_remote = remote + num_of_steps
     local j = 1
     cmd('store remote 3.%i thru 3.%i', remote, last_remote)
@@ -181,7 +193,10 @@ local function print_user_infos()
         Informs the user if the plugin was run successfully and if so,
         it prints the location of the CSF-Executor and it's corresponding cue container into a message box.
     ]]
-    gma.echo("\n CueStep Fader successfully accomplished. \n \n ************************************ \n created by Jonas Koch and Mark Huber \n ************************************")
+    gma.echo([[\nCueStep Fader successfully accomplished.\n\n
+            ************************************\n
+            created by Jonas Koch and Mark Huber\n
+            ************************************]])
     gma.feedback("\n You can find \n - The CSF-Executor at "..userinfo.exec..". \n - The 'cue container' at sequence "..userinfo.csc..".")
     if not TESTMODE then
         gma.gui.msgbox("INFO","You can find \n - The CSF-Executor at "..userinfo.exec..". \n - The 'cue container' at sequence "..userinfo.csc..".")
@@ -193,28 +208,30 @@ function CSF_main(testmode)
         Requests user input for the number of steps and the CSF-name
         and executes all necessary functions in order.
     ]]
-    if testmode then TESTMODE = true end
+    if testmode and req_success then
+        TESTMODE = true
+    elseif not req_success then
+        gma.echo('CSF plugin: Test script not found. Thus test mode is not available.')
+    end
     local csfname
     local heading = "How many Steps"
     repeat
-        num_of_steps = TESTMODE and Test.steps:get_new_val() or gma.textinput(heading, "") 
-        -- Standard is textinput. get_new_val() is only chosen when plugin runs in test mode.
+        num_of_steps = TESTMODE and Test.steps:get_new_val() or gma.textinput(heading, "")
         num_of_steps = tonumber(num_of_steps)
         heading = "Number of Steps has to be a natural number."
     until num_of_steps and num_of_steps == math.floor(num_of_steps) and num_of_steps > 0
     local csfexec = verify_execnumber(nil, "Enter executor number. (e.g 1.1)")
     heading = "Enter a name for the CSF."
     repeat
-        csfname = TESTMODE and Test.name:get_new_val() or gma.textinput(heading, "") 
-        -- Standard is textinput. CSF_TEST_name is only chosen when plugin runs in testmode.
+        csfname = TESTMODE and Test.name:get_new_val() or gma.textinput(heading, "")
         heading = "Name is invalid or already in use."
     until csfname and not getobj.handle("executor *.CSC_"..csfname)
-    local fname       = string.format('csfixtype-%i--v%i.xml', num_of_steps, FTYPEVERS)
+    local fname = string.format('csfixtype-%i--v%i.xml', num_of_steps, FTYPEVERS)
     local found, file = manage_ftype_files(LIB_PATH, fname)
-    local csf_seq     = pooltools.getfrobj('sequence', 101, 1)
-    local csc_seq     = pooltools.getfrobj('sequence', csf_seq+1, 1)
-    userinfo.exec     = csfexec
-    if not getvar('CSF_UNI') then setvar("CSF_UNI", UNI) end
+    local csf_seq = pooltools.getFreeObj('sequence', 101, 1)
+    local csc_seq = pooltools.getFreeObj('sequence', csf_seq+1, 1)
+    UNI = get_uni()
+    userinfo.exec = csfexec
     if not found then csfixtype.create(file, num_of_steps, FTYPEVERS) end
     setup_CSFader(csf_seq, csfexec, csfname, fname)
     create_CSContainer(csc_seq, csfexec, csfname)
