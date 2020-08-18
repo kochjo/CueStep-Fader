@@ -33,6 +33,9 @@ Please follow these Steps for the installation of CSF:
 6. Close the window.
 
 ## Developer infos
+### General informations
+Plugin versions are based on "Semantic Versioning 2.0.0". Visit [semver.org](https://semver.org) for more informations.
+
 ### Automated testings
 To test the plugin automatically with the Test.lua script, import the plugin as described above. But instead of running the plugin directly type<br>
     ```LUA 'CSF_main(true)'```<br>
