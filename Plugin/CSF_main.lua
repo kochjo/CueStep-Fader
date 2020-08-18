@@ -1,7 +1,7 @@
 -- ************************************************
 -- CREATED AND DEVELOPED BY JONAS KOCH & MARK HUBER
 -- ************************************************
---               Version 0.26.0 (Beta)
+--               Version 0.26.1 (Beta)
 -- ************************************************
 
 --********************************************************--
@@ -28,18 +28,19 @@ else
     module_path:format('sdb2')..'/Plugin/?.lua;'
 end
 
-local pooltools = require 'pooltools'
 local csfixtype = require 'csfixtype'
-local req_success, Test = pcall(function() return require 'Test' end)
+local pooltools = require 'pooltools'
+local REQ_SUCCESS, Test = pcall(function() return require 'Test' end)
 --^ Prevent the plugin from crashing if "Test.lua" is not available as it is not necessary for it to run.
 
-local TESTMODE = false -- Is set by calling the main function with 'true' as argument.
-local addr_cache = tonumber(getvar("CSF_ADDR_CACHE") or 1)
 local cmd = function(syntax, ...) gma.cmd(syntax:format(...)) end
+local gethandle = function(syntax, ...) return getobj.handle(syntax:format(...)) end
+
+local DMX_ADDR
 local FTYPEVERS = 10
 local LIB_PATH = getvar("PATH")..'/library'
-local gethandle = function(syntax, ...) return getobj.handle(syntax:format(...)) end
 local num_of_steps
+local TESTMODE = false -- Is set by calling the main function with 'true' as argument.
 local UNI
 local userinfo = {}
 
@@ -47,21 +48,26 @@ local userinfo = {}
 -- ********************* START CODE ********************* --
 --********************************************************--
 
-local function get_uni()
+local function get_dmx_address()
+    --[[
+        Determines the DMX universe and startaddress for the CSF.
+        Returns both as separate values of type int.
+    ]]
     local amount_of_channels
     local uni = getvar('CSF_UNI')
+    local addr = tonumber(getvar("CSF_ADDR_CACHE") or 1)
     if uni then
         uni = tonumber(uni)
         amount_of_channels = num_of_steps
     end
     uni = pooltools.getUni(uni, nil, amount_of_channels)
     setvar('CSF_UNI', uni)
-    return uni
+    return uni, addr
 end
 
 local function verify_execnumber(num, heading)
     --[[
-        requestes user to specify preferred execnumber. returns that execnumber if it's available resp.
+        Requests user to specify preferred execnumber. returns that execnumber if it's available resp.
         returns the next free alternative.
     ]]
     local exec
@@ -132,6 +138,7 @@ local function setup_CSFader(csf_seq, exec, name, fname)
     --[[
         Import and patch the CSFixture and store it to the CSFader.
     ]]
+    local dmx_addr = DMX_ADDR
     local ftypename = "CueStep Fader "..num_of_steps.." steps"
     local fix_id = pooltools.getFreeObj('fixture', 10001, 1)
     cmd('cd EditSetup; cd Layers')
@@ -148,14 +155,14 @@ local function setup_CSFader(csf_seq, exec, name, fname)
     end
     cmd('store %i; assign FixtureType "%s" at %i', fix, ftypename, fix)
     cmd('Assign %i /name="CSFixture"; assign %i /fixid=%i; assign %i /patch="%i.%i"; assign %i /ReactToMaster="Off"',
-        fix, fix, fix_id, fix, UNI, addr_cache, fix)
+        fix, fix, fix_id, fix, UNI, dmx_addr, fix)
     cmd('cd /')
     cmd('Fixture %i at 100; store seq %i "%s CSF"', fix_id, csf_seq, name)
     cmd('assign seq %i at exec %s', csf_seq, exec)
     cmd('assign exec %s /SwopProtect="On"', exec)
     cmd('clearall')
-    addr_cache = addr_cache + num_of_steps+1 -- Footprint is +1, because of the "CSF_OFF" step
-    setvar("CSF_ADDR_CACHE", addr_cache)
+    dmx_addr = dmx_addr + num_of_steps+1 -- Footprint is +1, because of the "CSF_OFF" step
+    setvar("CSF_ADDR_CACHE", dmx_addr)
 end
 
 local function create_CSContainer(seq, exec, name)
@@ -169,22 +176,24 @@ local function create_CSContainer(seq, exec, name)
     cmd('assign seq "CSC_%s" at exec %s', name, exec) 
 end
 
-local function setup_remotes(name, csc_seq)
+local function setup_remotes(name)
     --[[
         Create the desired DMX remotes.
     ]]
     local remote = pooltools.getFreeObj('remote 3.', 1, num_of_steps+1)
     local last_remote = remote + num_of_steps
-    local j = 1
+    local dmx_addr = DMX_ADDR
+    local step = 0
     cmd('store remote 3.%i thru 3.%i', remote, last_remote)
     cmd('assign remote 3.%i thru 3.%i /Type="CMD"', remote, last_remote)
     for i = remote, last_remote do
-        if j == 1 then
-            cmd('assign remote 3.%i /name="CSF Off" /CMD="off executor *.CSC_%s" /DMX="%i.%i"', i, name, UNI, j)
+        if i == remote then
+            cmd('assign remote 3.%i /name="CSF Off" /CMD="off executor *.CSC_%s" /DMX="%i.%i"', i, name, UNI, dmx_addr)
         else
-            cmd('assign remote 3.%i /name="CSF %i" /CMD="goto executor *.CSC_%s cue %i" /DMX="%i.%i"', i, j-1, name, j-1, UNI, j)
+            cmd('assign remote 3.%i /name="CSF %i" /CMD="goto executor *.CSC_%s cue %i" /DMX="%i.%i"', i, step, name, step, UNI, dmx_addr)
         end
-        j = j + 1
+        dmx_addr = dmx_addr + 1
+        step = step + 1
     end
 end
 
@@ -193,9 +202,9 @@ local function print_user_infos()
         Informs the user if the plugin was run successfully and if so,
         it prints the location of the CSF-Executor and it's corresponding cue container into a message box.
     ]]
-    gma.echo([[\nCueStep Fader successfully accomplished.\n\n
-            ************************************\n
-            created by Jonas Koch and Mark Huber\n
+    gma.echo([[CueStep Fader successfully accomplished.
+            ************************************
+            created by Jonas Koch and Mark Huber
             ************************************]])
     gma.feedback("\n You can find \n - The CSF-Executor at "..userinfo.exec..". \n - The 'cue container' at sequence "..userinfo.csc..".")
     if not TESTMODE then
@@ -208,9 +217,9 @@ function CSF_main(testmode)
         Requests user input for the number of steps and the CSF-name
         and executes all necessary functions in order.
     ]]
-    if testmode and req_success then
+    if testmode and REQ_SUCCESS then
         TESTMODE = true
-    elseif not req_success then
+    elseif not REQ_SUCCESS then
         gma.echo('CSF plugin: Test script not found. Thus test mode is not available.')
     end
     local csfname
@@ -230,14 +239,16 @@ function CSF_main(testmode)
     local found, file = manage_ftype_files(LIB_PATH, fname)
     local csf_seq = pooltools.getFreeObj('sequence', 101, 1)
     local csc_seq = pooltools.getFreeObj('sequence', csf_seq+1, 1)
-    UNI = get_uni()
+    UNI, DMX_ADDR = get_dmx_address()
     userinfo.exec = csfexec
     if not found then csfixtype.create(file, num_of_steps, FTYPEVERS) end
     setup_CSFader(csf_seq, csfexec, csfname, fname)
     create_CSContainer(csc_seq, csfexec, csfname)
-    setup_remotes(csfname, csc_seq)
+    setup_remotes(csfname)
     print_user_infos()
-    if TESTMODE then coroutine.resume(Test.test) end -- ends the suspension of the test function
+    gma.echo("before resume")
+    gma.echo("TESTMODE: "..tostring(TESTMODE))
+    if TESTMODE then coroutine.resume(Test.test); gma.echo("resumed") end -- ends the suspension of the test function
 end
 
 return CSF_main
