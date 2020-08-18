@@ -59,10 +59,8 @@ Test.test = coroutine.create(function()
     while not all_tested() do
         log("Run", run, 'Not all tested. Next one.')
         cmd('LUA "CSF_main(true)"')
-        coroutine.yield()
+        coroutine.yield() -- wait for the current run of CSF to finish.
         log(nil, nil, "\n Resume yielding loop.")
-        -- needs to be yielded, as it otherwise continuously executes the plugin
-        -- without waiting for the previous execution to finish.
         run = run+1
     end
     log(nil, nil, "Test completed.")
