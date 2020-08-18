@@ -5,9 +5,9 @@ local x_cache
 
 local function calc_x(step_size)
     local a = x_cache or 0
-    local b = (a*10 + 0.0001*10)/10 -- multiply and divide by 10 to get more precise results! (Prog. languages have problems with precise float values.)
+    local b = (a*10 + 0.001)/10 -- multiply and divide by 10 to get more precise results!
     local c = a + step_size
-    local d = (c*10 + 0.0001*10)/10
+    local d = (c*10 + 0.001)/10
     x_cache = c
     local t = {x0 = a, x1 = b, x2 = c, x3 = d}
     return t
