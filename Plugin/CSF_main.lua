@@ -212,6 +212,33 @@ local function print_user_infos()
     end
 end
 
+local function validate_steps_input(input)
+    --[[
+        Checks wether the given parameter input is a natural number less then 100.
+        Returns boolean.
+    ]]
+    if type(input) ~= "number" then return false end
+    local is_valid = false
+    if input == math.floor(input) and input > 0 and input <= 100 then
+        is_valid = true
+    end
+    return is_valid
+end
+
+local function validate_name_input(input)
+    --[[
+        Checks wether the given parameter input is a legal executorname.
+        Returns boolean.
+    ]]
+    if not input then return false end
+    local is_valid = false
+    local has_dot = input:match("%.")
+    if not has_dot and not getobj.handle("executor *.CSC_"..input) then
+        is_valid = true
+    end
+    return is_valid
+end
+
 function CSF_main(testmode)
     --[[
         Requests user input for the number of steps and the CSF-name
@@ -228,13 +255,13 @@ function CSF_main(testmode)
         num_of_steps = TESTMODE and Test.steps:get_new_val() or gma.textinput(heading, "")
         num_of_steps = tonumber(num_of_steps)
         heading = "Number of Steps has to be a natural number."
-    until num_of_steps and num_of_steps == math.floor(num_of_steps) and num_of_steps > 0
+    until validate_steps_input(num_of_steps)
     local csfexec = verify_execnumber(nil, "Enter executor number. (e.g 1.1)")
     heading = "Enter a name for the CSF."
     repeat
         csfname = TESTMODE and Test.name:get_new_val() or gma.textinput(heading, "")
         heading = "Name is invalid or already in use."
-    until csfname and not getobj.handle("executor *.CSC_"..csfname)
+    until validate_name_input(csfname)
     local fname = string.format('csfixtype-%i--v%i.xml', num_of_steps, FTYPEVERS)
     local found, file = manage_ftype_files(LIB_PATH, fname)
     local csf_seq = pooltools.getFreeObj('sequence', 101, 1)
@@ -248,7 +275,7 @@ function CSF_main(testmode)
     print_user_infos()
     gma.echo("before resume")
     gma.echo("TESTMODE: "..tostring(TESTMODE))
-    if TESTMODE then coroutine.resume(Test.test); gma.echo("resumed") end -- ends the suspension of the test function
+    if TESTMODE then coroutine.resume(Test.test); gma.echo("resumed") end
 end
 
 return CSF_main
