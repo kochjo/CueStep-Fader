@@ -59,7 +59,7 @@ function pooltools.getUni(start_uni, start_addr, amount)
             if free_addr >= amount then return uni end
             if addr > critical_addr and free_addr == 0 then break end
         end
-        start_addr = 1 -- reset start_addr to 1 as if
+        start_addr = 1
     end
 end
 
