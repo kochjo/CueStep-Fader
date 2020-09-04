@@ -10,6 +10,7 @@ DO NOT RUN THIS PLUGIN IN ANY SHOW-CRITICAL SITUATIONS!
 
 ## Table of contents
 * [What is CueStep Fader?](#what-is-cuestep-fader?)
+* [How to use it](#how-to-use-it)
 * [Installation guide](#installation-guide)
 * [Developer infos](#developer-infos)
 * [Technology](#technology)
@@ -18,6 +19,13 @@ DO NOT RUN THIS PLUGIN IN ANY SHOW-CRITICAL SITUATIONS!
 ## What is CueStep Fader?
 CueStep Fader is a Lua plugin for GrandMA2 lighting consoles and its goal is to make cue-step fader usable for everyone!
 With CSF you can trigger specific cues in a sequence depending on the faderposition. For example if you have a 10 channel sunstrip and want to control how many lamps are glowing by moving the fader up and down. And the best: It doesn't require any in-depth knowlege of the console and sets up everything in seconds and nearly completely automatically!
+
+
+## How to use it
+CueStep Fader is very simple to use. Once it is installed (see installation guide below), you can either click on the plugin in the plugin pool window or type 'Plugin "CueStep Fader"' into the command line, to start it.
+1. Enter the amount of steps you need, as an integer. Mind, that the maximum number is steps is currently limited to 100 for technical reasons.
+2. Enter your preferred executor number by using either the format PAGE.EXECUTOR or EXECUTOR (for using the current page).
+3. Enter a name for your CSF. The name must not contain dots but _can_ be empty - however this is not recommended in terms of later identification.
 
 
 ## Installation guide
