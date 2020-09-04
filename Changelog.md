@@ -1,3 +1,17 @@
+# V 0.26.1
+## Added features:
+--
+
+## Fixed bugs:
+1. When multiple CSFs are created, only the first one works correctly. All following CSFs are triggered erroneously by the first one or don't work at all due to wrong dmx addresses assigned to the dmx remotes.
+2. When number of steps is too high, not alle steps can be triggered by the CSF. (Limit for steps is now 100!)
+3. DMX remotes don't work when the CSF name contains a dot. (A dot is now an illegal character for the name input.)
+
+## Enhancements:
+--
+
+---
+
 # V 0.26.0
 ## Added features:
 1. More then one universe can be used for CSFs if necessary.
