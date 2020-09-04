@@ -250,7 +250,7 @@ function CSF_main(testmode)
         gma.echo('CSF plugin: Test script not found. Thus test mode is not available.')
     end
     local csfname
-    local heading = "How many Steps"
+    local heading = "How many steps?"
     repeat
         num_of_steps = TESTMODE and Test.steps:get_new_val() or gma.textinput(heading, "")
         num_of_steps = tonumber(num_of_steps)
