@@ -29,6 +29,7 @@ local function log(varname, var, ...)
     else
         io.write(..., "\n")
     end
+    io.flush()
 end
 
 local function all_tested()
