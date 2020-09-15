@@ -1,9 +1,86 @@
 csfixtype = {}
+csfixtype.VERSION = {major = 1, minor = 0, patch = 0, str = "1.0.0"}
 
 local pooltools = require 'pooltools'
 local x_cache
 
+local function get_files(path, op_sys)
+    --[[
+        Searches for existing fixture type files and stores their names in a temporary .txt file.
+        These names are then imported into the table file_names, which is returned at the end.
+        Parameters: path (str), op_sys(str)
+        Return value: file_names (table)
+    ]]
+    local file_names = {}
+    local list_cmd = ""
+    if op_sys == "WINDOWS" then
+        list_cmd = 'dir /B "'..path..'" | findstr /i "csfixtype.*.xml"'
+    else
+        list_cmd = 'ls "'..path..'" | grep "csfixtype.*.xml"'
+    end
+    local file_list = io.popen(list_cmd)
+    local files = file_list:lines()
+    for file in files do
+        table.insert(file_names, file)
+    end
+    return file_names
+end
+
+local function name_to_vers(name)
+    --[[
+        Takes the filename as a parameter (str) and returns a table containing the major, minor and patch
+        version.
+    ]]
+    local version_pos = name:find("v") + 1
+    local version_str = name:sub(version_pos)
+    local get_subversion = version_str:gmatch("%d")
+    local version = {
+        major = tonumber(get_subversion()),
+        minor = tonumber(get_subversion()),
+        patch = tonumber(get_subversion())
+    }
+    return version
+end
+
+local function is_deprecated(fname)
+    --[[
+        Returns true if the filename passed as a parameter (str), indicates a fixture type
+        version that is not up to date. Returns false otherwise.
+    ]]
+    local file_vers = name_to_vers(fname)
+    if file_vers.major < csfixtype.VERSION.major then
+        return true
+    elseif file_vers.minor < csfixtype.VERSION.minor then
+        return true
+    elseif file_vers.patch < csfixtype.VERSION.patch then
+        return true
+    end
+    return false
+end
+
+local function delete_deprecated(path, op_sys)
+    --[[
+        Checks the library for deprecated CSF fixture types and deletes them.
+        Parameter: path (to the library; str), op_sys (str)
+        Returns nil.
+    ]]
+    local deleted_files_count = 0
+    local files = get_files(path, op_sys)
+    for _, file in pairs(files) do
+        if is_deprecated(file) then
+            os.remove(path..'/'..file)
+            deleted_files_count = deleted_files_count + 1
+        end
+    end
+    gma.echo(deleted_files_count..' deprecated fixturetypes deleted.')
+end
+
 local function calc_x(step_size)
+    --[[
+        Calculates the X coordinates for the DMX profile points.
+        Parameters: step_size(number)
+        Return value: t (table)
+    ]]
     local a = x_cache or 0
     local b = (a*10 + 0.001)/10 -- multiply and divide by 10 to get more precise results!
     local c = a + step_size
@@ -13,10 +90,16 @@ local function calc_x(step_size)
     return t
 end
 
-function csfixtype.create(file, number_of_steps, vers)
+local function create_fixtype(file, number_of_steps)
+    --[[
+        Creates a grandMA2 fixture type as an XML file depending on the given parameters.
+        Parameters: file (file obj), number_of_steps (number)
+        Returns nil.
+    ]]
     local profile_index = pooltools.getFreeObj('Profile', 1, number_of_steps+1)
     local step_size = 1 / number_of_steps
     local points = {}
+    local vers = table.concat(csfixtype.VERSION, ".")
     io.output(file)
     io.write(string.format(
         '<?xml version="1.0" encoding="utf-8"?>\n'..
@@ -26,12 +109,12 @@ function csfixtype.create(file, number_of_steps, vers)
 		'\t\t<short_name>CSF</short_name>\n'..
 		'\t\t<manufacturer>JonasKochMarkHuber</manufacturer>\n'..
         '\t\t<short_manufacturer>JKMH</short_manufacturer>\n'..
-        '\t\t<revision date="03.02.2020" text="Version %i" generator_software_name="CueStep Fader" generator_software_version="0.19" />\n'..
-		'\t\t<Profiles>', number_of_steps, vers
+        '\t\t<revision date="10.09.2020" text="Version %s" generator_software_name="CueStep Fader" generator_software_version="%s" />\n'..
+		'\t\t<Profiles>', number_of_steps, vers, vers
     ))
     -- Generator start
     io.write(string.format('\n'..
-        '\t\t\t<DMX_Profile index="%i" name="CSF_Profile 0/%i_%i" display_spec_index="1">\n'..
+        '\t\t\t<DMX_Profile index="%i" name="CSF_Profile 0/%i_%s" display_spec_index="1">\n'..
         '\t\t\t\t<DMX_Profile_Point index="0" y="1" mode="linear" />\n'..
         '\t\t\t\t<DMX_Profile_Point index="1" x="0.01" y="1" mode="linear" />\n'..
         '\t\t\t\t<DMX_Profile_Point index="2" x="0.0101" mode="linear" />\n'..
@@ -41,7 +124,7 @@ function csfixtype.create(file, number_of_steps, vers)
     for i=profile_index+1, profile_index + number_of_steps-1 do
         points = calc_x(step_size)
         io.write(string.format(
-            '\t\t\t<DMX_Profile index="%i" name="CSF_Profile %i/%i_%i" display_spec_index="1">\n'..
+            '\t\t\t<DMX_Profile index="%i" name="CSF_Profile %i/%i_%s" display_spec_index="1">\n'..
             '\t\t\t\t<DMX_Profile_Point index="0" x="%.4f" mode="linear" />\n'..
             '\t\t\t\t<DMX_Profile_Point index="1" x="%.4f" y="1" mode="linear" />\n'..
             '\t\t\t\t<DMX_Profile_Point index="2" x="%.4f" y="1" mode="linear" />\n'..
@@ -51,7 +134,7 @@ function csfixtype.create(file, number_of_steps, vers)
     end
     points = calc_x(step_size-0.01)
     io.write(string.format(
-        '\t\t\t<DMX_Profile index="%i" name="CSF_Profile %i/%i_%i" display_spec_index="1">\n'..
+        '\t\t\t<DMX_Profile index="%i" name="CSF_Profile %i/%i_%s" display_spec_index="1">\n'..
         '\t\t\t\t<DMX_Profile_Point index="0" x="%.4f" mode="linear" />\n'..
         '\t\t\t\t<DMX_Profile_Point index="1" x="%.4f" y="1" mode="linear" />\n'..
         '\t\t\t\t<DMX_Profile_Point index="2" x="1" y="1" mode="linear" />\n'..
@@ -95,7 +178,23 @@ function csfixtype.create(file, number_of_steps, vers)
         '</MA>'
     )
     file:close()
-    gma.echo('CSFixtype created!')
+    gma.echo('CSFixtype created.')
+end
+
+function csfixtype.manage(path, num_of_steps, op_sys)
+    --[[
+        Triggers the deletion of deprecated fixture type files and creates a new fixture type file
+        in case there doesn't already exist a matching file.
+    ]]
+    delete_deprecated(path, op_sys)
+    local fname = string.format('csfixtype-%i--v%s.xml', num_of_steps, csfixtype.VERSION.str)
+    local file = io.open(path..'/'..fname, 'r')
+    if file then
+        file:close()
+    else
+        file = io.open(path..'/'..fname, 'w')
+        create_fixtype(file, num_of_steps)
+    end
 end
 
 return csfixtype
