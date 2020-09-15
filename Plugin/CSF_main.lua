@@ -1,7 +1,7 @@
 -- ************************************************
 -- CREATED AND DEVELOPED BY JONAS KOCH & MARK HUBER
 -- ************************************************
---               Version 0.26.1 (Beta)
+--               Version 0.27.0 (Beta)
 -- ************************************************
 
 --********************************************************--
@@ -12,7 +12,8 @@ local getobj = gma.show.getobj
 local getvar = gma.show.getvar
 local setvar = gma.show.setvar
 
-if getvar("OS") == "WINDOWS" then -- Configure Lua's native 'package.path' variable to ensure that the machine finds all necessary modules.
+local OS = getvar('OS')
+if OS == "WINDOWS" then -- Configure Lua's native 'package.path' variable to ensure that the machine finds all necessary modules.
     local module_path = getvar('pluginpath')..'/CueStep Fader'
     package.path = package.path..';'..
     module_path..'/Plugin/?.lua;'..
@@ -37,9 +38,8 @@ local cmd = function(syntax, ...) gma.cmd(syntax:format(...)) end
 local gethandle = function(syntax, ...) return getobj.handle(syntax:format(...)) end
 
 local DMX_ADDR
-local FTYPEVERS = 10
 local LIB_PATH = getvar("PATH")..'/library'
-local num_of_steps
+local NUM_OF_STEPS
 local TESTMODE = false -- Is set by calling the main function with 'true' as argument.
 local UNI
 local userinfo = {}
@@ -58,7 +58,7 @@ local function get_dmx_address()
     local addr = tonumber(getvar("CSF_ADDR_CACHE") or 1)
     if uni then
         uni = tonumber(uni)
-        amount_of_channels = num_of_steps
+        amount_of_channels = NUM_OF_STEPS
     end
     uni = pooltools.getUni(uni, nil, amount_of_channels)
     setvar('CSF_UNI', uni)
@@ -97,49 +97,12 @@ local function verify_execnumber(num, heading)
     return execnum
 end
 
-local function delete_deprecated(path)
-    --[[
-        Detects and deletes deprecated fixturetype files
-    ]]
-    local a = 0
-    for i=FTYPEVERS-1, 1, -1 do
-        local name = string.format('csfixtype-%i--v%i.xml', num_of_steps, i)
-        local slash = package.config:sub(1,1)
-        path = path..slash..name
-        local file = io.open(path, 'r')
-        if file then
-            file:close()
-            local syntax = getvar('OS') == 'WINDOWS' and 'del "%s"' or 'rm -f %s'
-            os.execute(syntax:format(path))
-            a = a + 1
-        end
-    end
-    return gma.echo(a..' deprecated fixturetypes deleted.')
-end
-
-local function manage_ftype_files(path, fname)
-    --[[
-        Returns 'true' if the requested file already exists, 
-        otherwise it returns 'false' and a writable file object.
-    ]]
-    delete_deprecated(LIB_PATH)
-    local flag = false
-    local file = io.open(path..'/'..fname, 'r')
-    if file then
-        flag = true
-        file:close()
-    else
-        file = io.open(path..'/'..fname, 'w')
-    end
-    return flag, file
-end
-
-local function setup_CSFader(csf_seq, exec, name, fname)
+local function setup_CSFader(csf_seq, exec, name)
     --[[
         Import and patch the CSFixture and store it to the CSFader.
     ]]
     local dmx_addr = DMX_ADDR
-    local ftypename = "CueStep Fader "..num_of_steps.." steps"
+    local ftypename = "CueStep Fader "..NUM_OF_STEPS.." steps"
     local fix_id = pooltools.getFreeObj('fixture', 10001, 1)
     cmd('cd EditSetup; cd Layers')
     local layerhandle = getobj.handle('CSLayer')
@@ -150,6 +113,7 @@ local function setup_CSFader(csf_seq, exec, name, fname)
     local fix = getobj.amount(layerhandle)+1
     cmd('cd CSLayer')
     if not gethandle('Fixturetype "%s"', ftypename) then
+        local fname = string.format('csfixtype-%i--v%s.xml', NUM_OF_STEPS, csfixtype.VERSION.str)
         local ftypeno = pooltools.getFreeObj('fixturetype', 1, 1)
         cmd('Import "%s" At Fixturetype %i /path="%s"', fname, ftypeno, LIB_PATH)
     end
@@ -161,7 +125,7 @@ local function setup_CSFader(csf_seq, exec, name, fname)
     cmd('assign seq %i at exec %s', csf_seq, exec)
     cmd('assign exec %s /SwopProtect="On"', exec)
     cmd('clearall')
-    dmx_addr = dmx_addr + num_of_steps+1 -- Footprint is +1, because of the "CSF_OFF" step
+    dmx_addr = dmx_addr + NUM_OF_STEPS+1 -- Footprint is +1, because of the "CSF_OFF" step
     setvar("CSF_ADDR_CACHE", dmx_addr)
 end
 
@@ -171,7 +135,7 @@ local function create_CSContainer(seq, exec, name)
     ]]
     exec = verify_execnumber(exec:gsub('%.', '.1'))
     userinfo.csc = seq
-    cmd('store seq %i Cue 1 thru %i "Step 1"', seq, num_of_steps)
+    cmd('store seq %i Cue 1 thru %i "Step 1"', seq, NUM_OF_STEPS)
     cmd('label seq %i "CSC_%s"', seq, name)
     cmd('assign seq "CSC_%s" at exec %s', name, exec) 
 end
@@ -180,8 +144,8 @@ local function setup_remotes(name)
     --[[
         Create the desired DMX remotes.
     ]]
-    local remote = pooltools.getFreeObj('remote 3.', 1, num_of_steps+1)
-    local last_remote = remote + num_of_steps
+    local remote = pooltools.getFreeObj('remote 3.', 1, NUM_OF_STEPS+1)
+    local last_remote = remote + NUM_OF_STEPS
     local dmx_addr = DMX_ADDR
     local step = 0
     cmd('store remote 3.%i thru 3.%i', remote, last_remote)
@@ -252,29 +216,25 @@ function CSF_main(testmode)
     local csfname
     local heading = "How many steps?"
     repeat
-        num_of_steps = TESTMODE and Test.steps:get_new_val() or gma.textinput(heading, "")
-        num_of_steps = tonumber(num_of_steps)
+        NUM_OF_STEPS = TESTMODE and Test.steps:get_new_val() or gma.textinput(heading, "")
+        NUM_OF_STEPS = tonumber(NUM_OF_STEPS)
         heading = "Number of Steps has to be a natural number."
-    until validate_steps_input(num_of_steps)
+    until validate_steps_input(NUM_OF_STEPS)
     local csfexec = verify_execnumber(nil, "Enter executor number. (e.g 1.1)")
     heading = "Enter a name for the CSF."
     repeat
         csfname = TESTMODE and Test.name:get_new_val() or gma.textinput(heading, "")
         heading = "Name is invalid or already in use."
     until validate_name_input(csfname)
-    local fname = string.format('csfixtype-%i--v%i.xml', num_of_steps, FTYPEVERS)
-    local found, file = manage_ftype_files(LIB_PATH, fname)
     local csf_seq = pooltools.getFreeObj('sequence', 101, 1)
     local csc_seq = pooltools.getFreeObj('sequence', csf_seq+1, 1)
     UNI, DMX_ADDR = get_dmx_address()
     userinfo.exec = csfexec
-    if not found then csfixtype.create(file, num_of_steps, FTYPEVERS) end
-    setup_CSFader(csf_seq, csfexec, csfname, fname)
+    csfixtype.manage(LIB_PATH, NUM_OF_STEPS, OS)
+    setup_CSFader(csf_seq, csfexec, csfname)
     create_CSContainer(csc_seq, csfexec, csfname)
     setup_remotes(csfname)
     print_user_infos()
-    gma.echo("before resume")
-    gma.echo("TESTMODE: "..tostring(TESTMODE))
     if TESTMODE then coroutine.resume(Test.test); gma.echo("resumed") end
 end
 
