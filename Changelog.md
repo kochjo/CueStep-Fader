@@ -1,3 +1,17 @@
+# V 0.27.0
+## Added features:
+--
+
+## Fixed bugs:
+1. Test.log file can only be viewed when the GrandMA Software is shut down.
+
+## Enhancements:
+### API CHANGES:
+1. All functions that are about managing fixture types and there files are now outsourced to the csfixtype module for clarity reasons.
+2. Versioning of the 'csfixtype' module changed to match semantic versioning (2.0.0). csfixtype is now on version 1.0.0.
+
+---
+
 # V 0.26.1
 ## Added features:
 --
