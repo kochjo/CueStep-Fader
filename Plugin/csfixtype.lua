@@ -6,8 +6,8 @@ local x_cache
 
 local function get_files(path, op_sys)
     --[[
-        Searches for existing fixture type files and stores their names in a temporary .txt file.
-        These names are then imported into the table file_names, which is returned at the end.
+        Searches for existing fixture type files and import their names into the table file_names,
+        which is returned at the end.
         Parameters: path (str), op_sys(str)
         Return value: file_names (table)
     ]]
@@ -78,7 +78,7 @@ end
 local function calc_x(step_size)
     --[[
         Calculates the X coordinates for the DMX profile points.
-        Parameters: step_size(number)
+        Parameters: step_size (number)
         Return value: t (table)
     ]]
     local a = x_cache or 0
